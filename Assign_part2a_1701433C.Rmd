@@ -1,0 +1,240 @@
+---
+title: "Assign_part2a_1701433C"
+author: "Tan Wei Ping"
+date: "20 December 2018"
+output:
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+**Part 2a**
+
+## R Markdown - Qn_1
+
+1a) Examine the first line of the CSV file.
+
+```{r read_data}
+# read the data
+data_with_na <- read.csv("C:/Users/Wei Ping/Documents/SEM 2.2/DMTR/Assignment/dmtr_assign_part2a.csv")
+
+# display first line of data
+head(data_with_na,1)
+```
+
+**Observations:**Based on the output of the first line of the csv file, there are 16 attributes/variables. All the attribute and its values seems to have a variety of data types (numeric, integer, etc.), with different level of measurements (*nominal* - 'id' ,*ordinal*,*interval* - 'timestamp_first_active',*ratio* - 'age' ,*binary* - 'gender').
+
+One of the attribute named as 'date_account_created' consists of data like 1/10/2010 which are known as *date* types that can be can be categorised as a factor variable. Another attribute named as 'timestamp_first_active' consists of data like 20100000000000, which is a numeric variable. 
+
+From these 2 attributes, it can be interpreted that this data set consists of transactional data for the users who made a signup for the unknown website (with clues from attributes like 'signup_app'/'first_browser'.)
+
+
+1b) Examine the name, data type for each variable
+
+```{r name_datatype}
+#name of each variable
+names(data_with_na)
+
+#data type of each variable
+for (i in 1:length(data_with_na)){
+  print(class(data_with_na[,i]))
+}
+```
+
+**Observations:**Among the 16 attributes/variables, there are 3 different data types - factor, numeric & integer. However most of the attribute/variable are 'factors'. This means that this dataset focusses a lot more on recording categorical than numeric variables.
+
+
+1c) Examine the number of rows, columns of the dataset
+
+```{r rows_columns}
+#number of rows
+nrow(data_with_na)
+
+#number of columns
+ncol(data_with_na)
+```
+
+**Observations:**There are 19813 rows and 16 columns. This means that there are 16 variables/attributes and 19813 items.
+
+
+2a) Data cleaning (to remove missing data)
+
+```{r remove_missing_values}
+#replace blanks with NA
+data_with_na <- read.csv("C:/Users/Wei Ping/Documents/SEM 2.2/DMTR/Assignment/dmtr_assign_part2a.csv", 
+                         header=T, na.strings=c("","NA"))
+
+#print the results
+head(data_with_na)
+
+#check for any NA values
+any(is.na(data_with_na))
+
+#number of values with NA
+sum(is.na(data_with_na))
+
+#omit data with na
+data_without_na<-na.omit(data_with_na)
+head(data_without_na)
+```
+
+**Observations**: There seems to be a lot of empty/blank cells in the dataset for attributes/variables like 'date_first_booking', 'age' and 'first_affiliate'. One way to clear away these empty/missing cells will be to replace them with 'NA' and later using codes like 'na.omit' to delete away these initial empty cells.
+
+
+2b) Data cleaning (detect outliers) - **Numerical**
+
+```{r detect_outliers_signupflow}
+#deleting outlier for numeric variable - signup_flow
+signup_flow1 <- data_without_na$signup_flow
+boxplot(signup_flow1, horizontal=T)
+summary(signup_flow1)
+
+#setting the benchmark to exclude outliers
+bench_sf <- 3.00 + 1.5*IQR(signup_flow1)
+bench_sf
+
+#visualising the updated with boxplot without outliers
+signup_flow1<-signup_flow1[signup_flow1<bench_sf]
+boxplot(signup_flow1, horizontal = T)
+
+#update the actual dataset the new values
+data_without_na<-data_without_na[data_without_na$signup_flow <bench_sf, ]
+head(data_without_na)
+```
+
+**Observations**: In order to effectively visualise what are the outlier values, the attribute - signup_flow has its data visualised into a boxplot diagram. The formula 3rd_Quartile + 1.5*IQR(data) has also been used to set the benchmark for which data (known as outliers) must be excluded. Based on the benchmark value, for values that are more than 7.5, it must be excluded from the overall dataset.
+
+```{r detect_outliers_age}
+#deleting outlier for numeric variable - age
+age1 <- data_without_na$age
+boxplot(age1, horizontal=T)
+summary(age1)
+
+#setting the benchmark to exclude outliers
+bench_ag <- 43.00 + 1.5*IQR(age1)
+bench_ag
+
+bench_ag1 <- 43.00 - 1.5*IQR(age1)
+bench_ag1
+
+#visualising the updated with boxplot without outliers
+age1<-age1[age1 < bench_ag & age1 > bench_ag1]
+boxplot(age1, horizontal = T)
+
+#update the actual dataset the new values
+data_without_na<-data_without_na[data_without_na$age<bench_ag & data_without_na$age>bench_ag1,]
+head(data_without_na)
+```
+
+**Observations**: In order to effectively visualise what are the outlier values, the attribute - age has its data visualised into a boxplot diagram. The formula 3rd_Quartile + 1.5xIQR(data) & 3rd_Quartile - 1.5xIQR(data) has also been used to set the benchmark for which data (known as outliers) must be excluded. Based on the benchmark value, for values that are more than 61 and less than 25, it must be excluded from the overall dataset.
+
+
+**Data cleaning (detect outliers) - Categorical**
+
+```{r detect_outliers_categorical}
+#delete values with the word '-unknown-' from gender
+data_without_na<-data_without_na[!grepl("-unknown-", data_without_na$gender),]
+
+#delete values with the word '-unknown-' from first_affiliate_tracked
+data_without_na<-data_without_na[!grepl("-unknown-", data_without_na$first_affiliate_tracked),]
+
+#delete values with the word '-unknown-' from first_browser
+data_without_na<-data_without_na[!grepl("-unknown-", data_without_na$first_browser),]
+head(data_without_na)
+```
+
+**Observations**: All 3 columns namely - gender, first_affiliate_tracked, first_browser contain the value '-unknown-' which has been deleted.
+
+
+2c) Data cleaning (handle redundancy)
+
+```{r data_redundancy}
+#identify duplicated data
+which(duplicated(data_without_na))
+#delete away duplicated data
+data <- data_without_na[!duplicated(data_without_na),]
+head(data)
+```
+
+**Observations**: All the data that were duplicated in the dataset has been deleted from the dataset. 
+
+
+3) Summarise the cleaned data set
+
+```{r data_summary}
+#summarise cleaned data set
+summary(data)
+```
+
+**Observations**: For the attributes/variables that are factors, the occurence of each data will be counted. However for attributes/variables that are integers, basic mathematical calculations such as 'min', 'Q1' (first quartile), 'Median', 'Q3' (third quartile), 'max' and 'mean' has been performed on the data.
+
+
+4a) Draw graph for numeric variables
+
+```{r numerical_graph}
+#Install ggplot
+#install.packages("ggplot2")
+library(ggplot2)
+
+#Plot the boxplot for signup_flow and age
+ggplot(data, aes(x = as.factor(signup_flow), y = age, fill = as.factor(signup_flow))) +
+  geom_boxplot()
+```
+
+```{r sd}
+#standard deviation for the different categories for signup_flow
+sd(data$signup_flow==0)
+sd(data$signup_flow==1)
+sd(data$signup_flow==2)
+sd(data$signup_flow==3)
+sd(data$signup_flow==5)
+sd(data$signup_flow==6)
+```
+
+Note: At first glance, there seems to be some data cleaning issues with signup_flow - 0 and signup_flow - 5. However, they are not exactly classified as dirty data for which needs to be deleted. 
+
+*Signup_flow = 0*
+Looking at the nature of signup_flow which is the steps that the users took to signup, there is no particular reason as to why this was recorded at 0 instead of an actual count of steps. Hence, if predictions are correct, those data with signup_flow - 0 is considered as missing data completely at random and the actual value for the signup_flow could be lost by chance. However, they will not be thus deleted and there are a couple of reasons to this. 
+
+1) Not all other fields of the same record (for signup_flow=0) has invalid data.
+2) There are many data with signup_flow = 0, deleting them will thus affect the accuracy of analysis.
+
+*Signup_flow = 5*
+Reference to the dataset after data cleaning has been completed, there seems to only be a single data left in the dataset. Hence, with only a cell of data, a boxplot can't be formed but this still does not give any reason for the data to be deleted. 
+
+**Observations**: The above shows a cleaned boxplot for age against signup_flow and the relationship between both variables.
+
+One comapison can be made from the signup_flow = 2 and signup_flow = 6 boxplot, where there exists some differences in observations. It can be seen that signup_flow=2 have data that are more widely spread out with a standard deviation of 0.4665104. Whereas, signup_flow=6 has a standard deviation of 0.09938086. 
+
+Thus, this means that signup_flow=2 has data that are more widely spread out while signup_flow=6 are more clustered together. In other words, there are more people with huge difference in age (from 26 to 60) who took 2 steps to signup while there are more people with similar ages who took 6 steps to signup (from age 26 to 48).Having said that, it is logically impossible for some people to take lesser steps to sign up than others. One possible reason for this would be the users left the website while signing up due to horrible web user interface and this has affected people from a variety of ages, not just older people, as can be seen from signup_flow=2. Hence, there could be initiatives made the owner of the website to improve the user interface. 
+
+```{r age}
+#plot histogram for age
+ggplot(data=data, aes(data$age)) + geom_histogram()
+
+#plot barplot for age
+ggplot(data = data, aes(x = "", y = data$age)) + 
+  geom_boxplot()
+```
+The above 2 graphs focusses on the variable age, using boxplot and histogram. The histogram basically tells more than the boxplot, showing more about the distribution of the different ages. From the histogram, we can tell that most users are clustered between age 30-40, with its peak at age 30. 
+
+4b) Draw graph for categorical variables
+```{r categorical_graph}
+#visualise first_device_type data in a barplot
+ggplot(data=data) + geom_bar(aes(x=gender,fill=as.factor(first_device_type))) +
+  ggtitle(label="Barplot")+theme_bw()
+```
+
+Note: The gender 'other' has not been deleted previously as there can be a possibility that either the users are provided the choice of choosing 'other' as their gender or it is data that are missing at random/*missing completely at random*.
+
+It could be missing data at random as perhaps either gender could find it less professional to say they use a Windows desktop as compared to Mac desktop. However, since this dataset has been identified to be transactional in nature, there is rare chances of users being allowed to choose what device they use but rather, this will recorded by the system itself (possibly).
+
+This might also be an indicator of missing data (gender) completely at random. This means that the data that belongs in 'others' might belong to either gender instead and the actual gender that belong to 'others' might have been lost, which is a more valid prediction. 
+
+Hence, the 'other' gender will not be deleted as if so, the accuracy of the analysis will be affected. 
+
+**Observations**: 
+From the above boxplot, it can be seen that there are more females than males who visited the website. For both genders, there seems to be a wide variety of device types used by the users. In particular, the device type that is most used is 'Mac Desktop'. Since this is the case, the website company can use this platform which the users prefers, for them to connect with the users. 
+
+For example, if more users uses the desktop, having any desktop-based campaign would increase the likelihood of them to receive any marketing messages etc. With that, the users can now be targetted at the correct platform for more business opportunities.
